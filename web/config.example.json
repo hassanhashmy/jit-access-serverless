@@ -1,0 +1,8 @@
+{
+  "region": "eu-west-2",
+  "apiUrl": "https://<api-id>.execute-api.eu-west-2.amazonaws.com",
+  "userPoolId": "eu-west-2_XXXXXXXXX",
+  "clientId": "<app-client-id>",
+  "cognitoDomain": "https://jit-access-232936223811.auth.eu-west-2.amazoncognito.com",
+  "issuer": "https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_XXXXXXXXX"
+}

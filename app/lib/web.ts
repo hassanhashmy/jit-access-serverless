@@ -33,7 +33,8 @@ export class Web extends Construct {
           override: true,
           contentSecurityPolicy: [
             "default-src 'self'",
-            `connect-src 'self' https://*.execute-api.${region}.amazonaws.com ${cognitoOrigin}`,
+            // API calls, OIDC discovery + JWKS (cognito-idp), and the token endpoint (Cognito domain).
+            `connect-src 'self' https://*.execute-api.${region}.amazonaws.com https://cognito-idp.${region}.amazonaws.com ${cognitoOrigin}`,
             "img-src 'self' data:",
             "style-src 'self' https://fonts.googleapis.com",
             "font-src https://fonts.gstatic.com",
