@@ -1,12 +1,15 @@
 name: pipeline
 
-# PRs run every check with NO AWS credentials. Only a push to main (after merge) can deploy,
-# and it authenticates with GitHub OIDC -> STS -> jit-github-deploy. No stored AWS keys anywhere.
+# The application layer (app/, web/). Platform Terraform has its own workflow (platform.yml).
+# PRs run every check with NO AWS credentials. Only main can deploy, and it authenticates with
+# GitHub OIDC -> STS -> jit-github-deploy. No stored AWS keys anywhere.
 on:
   pull_request:
     branches: [main]
+    paths-ignore: ["platform/**", ".github/workflows/platform.yml"]
   push:
     branches: [main]
+    paths-ignore: ["platform/**", ".github/workflows/platform.yml"]
   workflow_dispatch:
 
 permissions:
@@ -63,23 +66,8 @@ jobs:
         working-directory: app
         run: npx cdk synth --quiet
 
-  terraform:
-    name: Validate · Terraform (fmt, validate)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: platform
-    steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: hashicorp/setup-terraform@v4.0.1
-        with:
-          terraform_version: "1.15.2"
-      - run: terraform fmt -check -recursive
-      - run: terraform init -backend=false -input=false
-      - run: terraform validate
-
   security:
-    name: Scan · Secrets + IaC (gitleaks, checkov)
+    name: Scan · Secrets (gitleaks)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -89,16 +77,10 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Terraform misconfiguration scan
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: platform
-          framework: terraform
-          quiet: true
 
   deploy:
     name: Deploy · App via OIDC
-    needs: [python, cdk, terraform, security]
+    needs: [python, cdk, security]
     # Only from main (after merge, or a manual run on main), and only once the platform layer exists.
     # Pull requests never reach this job, and the role's trust policy would reject them anyway.
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
