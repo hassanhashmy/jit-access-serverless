@@ -69,9 +69,10 @@ def handler(event, context):
     assumed = sts.assume_role(
         RoleArn=f"{TARGET_ROLE_PREFIX}{role}",
         RoleSessionName=session_name(caller.username, request_id),
-        SourceIdentity=caller.username,  # recorded in CloudTrail on every action in the session
+        # SourceIdentity (the human) and the session name (user + request id) appear in CloudTrail on
+        # every action taken in this session.
+        SourceIdentity=caller.username,
         DurationSeconds=duration,
-        Tags=[{"Key": "jit-request-id", "Value": request_id}],
     )
     credentials = assumed["Credentials"]
     url = console.signin_url(credentials, CONSOLE_DESTINATIONS[role], ISSUER)

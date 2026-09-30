@@ -56,6 +56,8 @@ def test_requester_with_active_grant_gets_console_url(ctx, table, sts):
     [assumed] = sts.calls
     assert assumed["RoleArn"] == "arn:aws:iam::123456789012:role/jit-target-prod-logs-read"
     assert assumed["SourceIdentity"] == "alice"
+    assert assumed["RoleSessionName"] == "alice-req-1"
+    assert "Tags" not in assumed  # session tags need sts:TagSession, which the target trust doesn't grant
 
 
 def test_session_never_outlives_one_hour_and_follows_grant(ctx, table, sts):
