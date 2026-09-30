@@ -1,0 +1,29 @@
+# Node / TypeScript
+node_modules/
+dist/
+*.js.map
+app/cdk.out/
+app/**/*.js
+!app/jest.config.js
+app/**/*.d.ts
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Local-only config and secrets
+.env
+.env.*
+.claude/settings.local.json
+.DS_Store
