@@ -2,6 +2,8 @@
 # Effective permissions = identity policy ∩ boundary. CDK grants exact permissions; this caps them,
 # so even a mistaken or malicious grant in the app code can't reach IAM, other tables, or other buckets.
 data "aws_iam_policy_document" "app_boundary" {
+  #checkov:skip=CKV_AWS_356:Only X-Ray, log-delivery and task-token APIs use "*"; they have no resource-level permissions.
+  #checkov:skip=CKV_AWS_111:Same statements as above; every other write is scoped to the app's name prefixes.
   statement {
     sid    = "Logs"
     effect = "Allow"
@@ -148,7 +150,7 @@ data "aws_iam_policy_document" "app_boundary" {
     sid       = "InvalidateCdn"
     effect    = "Allow"
     actions   = ["cloudfront:CreateInvalidation", "cloudfront:GetInvalidation"]
-    resources = ["*"]
+    resources = ["arn:${local.partition}:cloudfront::${local.account_id}:distribution/*"]
   }
 
   # Explicit deny for readability and defence in depth. Nothing above allows these anyway.

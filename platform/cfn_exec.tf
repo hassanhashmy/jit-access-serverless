@@ -4,6 +4,13 @@
 #   2. IAM role changes ONLY when the role carries the app permission boundary.
 # That second rule closes the classic escalation path: "the pipeline creates an admin role, then uses it".
 data "aws_iam_policy_document" "cfn_exec" {
+  # This IS a deployment role: it must create and delete the app's resources. The risky part, IAM,
+  # is constrained by the boundary condition and the explicit denies below; an SCP is the outer fence.
+  #checkov:skip=CKV_AWS_107:Deployment role for Lambda/Cognito; no IAM credential APIs are allowed (explicit deny).
+  #checkov:skip=CKV_AWS_109:Role changes only with the permission-boundary condition; boundary edits are denied.
+  #checkov:skip=CKV_AWS_110:Escalation path closed by iam:PermissionsBoundary condition and PassRole service condition.
+  #checkov:skip=CKV_AWS_111:CloudFormation resource names aren't known in advance; tables and buckets are prefix-scoped.
+  #checkov:skip=CKV_AWS_356:Service-wide actions for the app's services; IAM is resource- and condition-scoped.
   statement {
     sid    = "ManageAppServices"
     effect = "Allow"
