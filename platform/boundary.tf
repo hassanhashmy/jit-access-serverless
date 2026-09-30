@@ -168,11 +168,34 @@ data "aws_iam_policy_document" "app_boundary" {
     not_resources = ["arn:${local.partition}:iam::${local.account_id}:role/jit-target-*"]
   }
 
-  # Explicit deny for readability and defence in depth. Nothing above allows these anyway.
+  # The revoke-sessions Lambda attaches a "deny sessions issued before now" policy to a target role.
+  # That's the only IAM write any app role can ever make, and target roles are themselves capped by
+  # a ReadOnlyAccess boundary that nothing in the app can change.
   statement {
-    sid       = "NeverIdentityOrOrganization"
+    sid       = "RevokeSessionsOnTargetRolesOnly"
+    effect    = "Allow"
+    actions   = ["iam:PutRolePolicy"]
+    resources = ["arn:${local.partition}:iam::${local.account_id}:role/jit-target-*"]
+  }
+
+  statement {
+    sid           = "NoIamOutsideTargetRoles"
+    effect        = "Deny"
+    actions       = ["iam:*"]
+    not_resources = ["arn:${local.partition}:iam::${local.account_id}:role/jit-target-*"]
+  }
+
+  statement {
+    sid         = "OnTargetRolesOnlyPutPolicyAndAssume"
+    effect      = "Deny"
+    not_actions = ["iam:PutRolePolicy", "sts:AssumeRole", "sts:SetSourceIdentity", "sts:TagSession"]
+    resources   = ["arn:${local.partition}:iam::${local.account_id}:role/jit-target-*"]
+  }
+
+  statement {
+    sid       = "NeverOrganizationOrAccount"
     effect    = "Deny"
-    actions   = ["iam:*", "organizations:*", "account:*"]
+    actions   = ["organizations:*", "account:*"]
     resources = ["*"]
   }
 }

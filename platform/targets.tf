@@ -108,6 +108,10 @@ resource "aws_iam_role" "target" {
   description          = each.value.description
   assume_role_policy   = data.aws_iam_policy_document.target_trust.json
   max_session_duration = 3600
+  # The app's revoke-sessions Lambda may add policies to these roles (to cut off open sessions).
+  # This boundary caps them at read-only whatever policy gets attached, so a compromised revoker
+  # can't turn a target role into admin.
+  permissions_boundary = "arn:${local.partition}:iam::aws:policy/ReadOnlyAccess"
 }
 
 resource "aws_iam_role_policy" "target" {

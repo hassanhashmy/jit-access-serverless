@@ -40,6 +40,18 @@ describe('IAM', () => {
     expect(assumers[0].resource).toBe('arn:aws:iam::232936223811:role/jit-target-*');
   });
 
+  test('the only IAM write is PutRolePolicy on jit-target-* roles, by the session revoker', () => {
+    const writers = resources('AWS::IAM::Policy').flatMap(([id, policy]) =>
+      policy.Properties.PolicyDocument.Statement.filter((s: { Action: string | string[] }) =>
+        [s.Action].flat().some((a) => a.startsWith('iam:')),
+      ).map((s: { Action: string | string[]; Resource: string }) => ({ id, action: s.Action, resource: s.Resource })),
+    );
+    expect(writers).toHaveLength(1);
+    expect(writers[0].id).toMatch(/^WorkflowRevokeSessions/);
+    expect(writers[0].action).toBe('iam:PutRolePolicy');
+    expect(writers[0].resource).toBe('arn:aws:iam::232936223811:role/jit-target-*');
+  });
+
   test('no IAM users or access keys are created', () => {
     template.resourceCountIs('AWS::IAM::User', 0);
     template.resourceCountIs('AWS::IAM::AccessKey', 0);

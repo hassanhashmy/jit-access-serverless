@@ -103,6 +103,7 @@ export class JitAccessStack extends Stack {
         ...api.functions,
         'validate-request': workflow.functions[0],
         'register-approval': workflow.functions[1],
+        'revoke-sessions': workflow.functions[2],
         'stream-publisher': wiring.publisher,
       },
       stateMachine: workflow.stateMachine,

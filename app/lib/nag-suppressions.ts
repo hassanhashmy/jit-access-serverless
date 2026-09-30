@@ -26,6 +26,10 @@ const ACKNOWLEDGED: { id: string; reason: string }[] = [
     id: 'AwsSolutions-IAM5[Resource::<WorkflowRegisterApprovalFnFCEAD708.Arn>:*]',
     reason: 'Step Functions may invoke any version/alias of its own register-approval function.',
   },
+  {
+    id: 'AwsSolutions-IAM5[Resource::<WorkflowRevokeSessionsFn2D40A539.Arn>:*]',
+    reason: 'Step Functions may invoke any version/alias of its own revoke-sessions function.',
+  },
   ...['s3:Abort*', 's3:DeleteObject*', 's3:GetBucket*', 's3:GetObject*', 's3:List*'].map((action) => ({
     id: `AwsSolutions-IAM5[Action::${action}]`,
     reason: 'CDK BucketDeployment syncs the web build into the site bucket; scoped to that bucket and the CDK assets bucket.',

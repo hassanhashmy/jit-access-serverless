@@ -1,6 +1,7 @@
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as events from 'aws-cdk-lib/aws-events';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
@@ -45,7 +46,21 @@ export class Workflow extends Construct {
       environment: { TABLE_NAME: table.tableName },
     }).fn;
     table.grant(registerFn, 'dynamodb:UpdateItem');
-    this.functions = [validateFn, registerFn];
+
+    // Cuts off open console sessions when access ends. Its only IAM write is PutRolePolicy on the
+    // platform's jit-target-* roles, which are capped by their own ReadOnlyAccess boundary.
+    const revokeSessionsFn = new PythonFunction(this, 'RevokeSessions', {
+      handler: 'handlers.revoke_sessions.handler',
+      description: 'Workflow: deny target-role sessions issued before the revoke time',
+      powertools: props.powertools,
+    }).fn;
+    revokeSessionsFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['iam:PutRolePolicy'],
+        resources: [`arn:aws:iam::${Stack.of(this).account}:role/jit-target-*`],
+      }),
+    );
+    this.functions = [validateFn, registerFn, revokeSessionsFn];
 
     // ---- helpers ------------------------------------------------------------------------
     const at = (p: string) => sfn.JsonPath.stringAt(p);
@@ -172,6 +187,20 @@ export class Workflow extends Construct {
     });
     revoke.addCatch(markFailed, onError);
 
+    const revokeSessions = new tasks.LambdaInvoke(this, 'RevokeActiveSessions', {
+      lambdaFunction: revokeSessionsFn,
+      payload: sfn.TaskInput.fromObject({
+        requestId: at('$.request.requestId'),
+        role: at('$.request.role'),
+        requesterUsername: at('$.request.requesterUsername'),
+        correlationId: at('$.request.correlationId'),
+      }),
+      resultPath: sfn.JsonPath.DISCARD,
+    });
+    // A failed revocation must not be silent: retry, then FAILED + alarm.
+    revokeSessions.addRetry({ errors: ['States.TaskFailed'], interval: Duration.seconds(2), maxAttempts: 3, backoffRate: 2 });
+    revokeSessions.addCatch(markFailed, onError);
+
     grant
       .next(publish('PublishGranted', 'AccessGranted', {
         approverUsername: at('$.decision.approverUsername'),
@@ -180,6 +209,7 @@ export class Workflow extends Construct {
       // A Wait state, not DynamoDB TTL: TTL deletes are best-effort and can lag, revocation can't.
       .next(new sfn.Wait(this, 'WaitUntilExpiry', { time: sfn.WaitTime.timestampPath('$.decision.expiresAt') }))
       .next(revoke)
+      .next(revokeSessions)
       .next(publish('PublishRevoked', 'AccessRevoked', {}))
       .next(done);
 
