@@ -27,21 +27,25 @@ Every step is audited.
 
 ![Runtime flow](docs/images/runtime-flow.png)
 
-- **Edge (1–3):** Cloudflare DNS points `jit.hassanhashmi.com` at CloudFront, which serves the app from a
-  private S3 bucket with an ACM certificate (TLS 1.2+).
+- **Edge (1–3):** the browser looks up `jit.hassanhashmi.com` in Cloudflare DNS, then connects straight to
+  CloudFront, which serves the app from a private S3 bucket with an ACM certificate (TLS 1.2+).
 - **Authentication (4–6):** Cognito issues tokens; API Gateway's JWT authorizer checks signature, issuer,
   client, expiry and scope before any code runs. A bad token gets a 401.
-- **Authorization (7):** the Python Lambdas decide what you may do: only approvers see the queue and decide,
-  nobody approves their own request, only the requester can open the console. Otherwise 403.
+- **Authorization (7):** the Python Lambdas decide what you may do: only requesters create requests, only
+  approvers see the queue and decide, nobody approves their own request, only the requester can open the
+  console. Otherwise 403.
 - **Events (8–13):** requests are saved in DynamoDB with conditional writes. The stream feeds a TypeScript
   Lambda that publishes to an EventBridge bus; rules start the workflow and copy every event to an audit log.
 - **Workflow (14–16):** Step Functions validates policy, pauses on a task token until an approver decides,
   grants, waits until expiry and revokes, with retries and a catch on every step.
-- **Real access (17–20):** a broker Lambda assumes a `jit-target-*` role through STS with the user's name as
-  `SourceIdentity`, and returns a one-time console sign-in link. At expiry a revoker denies that user's older
-  sessions on the role, so open consoles stop within seconds.
-- **Failures and monitoring (21–23):** anything that still fails after retries lands in an SQS dead-letter
-  queue. 14 CloudWatch alarms notify through SNS; traces go to X-Ray.
+- **Real access (17–21):** the start-session Lambda calls STS AssumeRole on a `jit-target-*` role with the
+  user's name as `SourceIdentity`, gets temporary credentials back, and swaps them at the AWS sign-in
+  (federation) endpoint for a one-time link. The browser opens it and lands in the AWS console, signed in as
+  that read-only role.
+- **Revocation (22):** at expiry a revoker adds a deny to the role for that user's older sessions, so open
+  consoles stop within seconds.
+- **Failures and monitoring (23–25):** anything that still fails after retries lands in an SQS dead-letter
+  queue. Logs and metrics go to CloudWatch (14 alarms notify through SNS); traces go to X-Ray.
 
 ## How changes reach AWS
 
