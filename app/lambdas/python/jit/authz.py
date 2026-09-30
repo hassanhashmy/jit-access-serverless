@@ -54,3 +54,13 @@ def check_can_decide(caller: Caller, item: dict) -> None:
         raise Forbidden("you cannot approve or reject your own request")
     if item["status"] != model.AWAITING_APPROVAL:
         raise Conflict(f"request is {item['status']}, not awaiting approval")
+
+
+def check_can_start_session(caller: Caller, item: dict, now_iso: str) -> None:
+    """Only the requester, only while the grant is active. ISO-8601 UTC strings compare correctly."""
+    if caller.sub != item["requesterSub"]:
+        raise Forbidden("only the person who requested this access can use it")
+    if item["status"] != model.GRANTED:
+        raise Forbidden(f"no active access: request is {item['status']}")
+    if item.get("expiresAt", "") <= now_iso:
+        raise Forbidden("access has expired")

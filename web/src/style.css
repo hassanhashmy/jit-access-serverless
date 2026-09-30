@@ -93,6 +93,8 @@ dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .decide input { flex: 1 1 220px; width: auto; }
 .warn { flex-basis: 100%; margin: 0; color: var(--warn); font-size: 13px; }
 
+.session { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--line); }
+
 .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
 
 .explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; border-color: var(--accent); }

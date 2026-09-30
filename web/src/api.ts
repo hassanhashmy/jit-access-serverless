@@ -48,6 +48,14 @@ export class Api {
     return this.call<{ items: AccessRequest[] }>('GET', `/requests?view=${view}`).then((r) => r.items);
   }
 
+  /** A one-time sign-in URL for a real, time-limited AWS console session (only while GRANTED). */
+  startSession(requestId: string) {
+    return this.call<{ consoleUrl: string; role: string; sessionExpiresAt: string; grantExpiresAt: string }>(
+      'POST',
+      `/requests/${encodeURIComponent(requestId)}/session`,
+    );
+  }
+
   decide(requestId: string, decision: 'APPROVED' | 'REJECTED', comment: string) {
     return this.call<{ requestId: string }>('POST', `/requests/${encodeURIComponent(requestId)}/decision`, {
       decision,

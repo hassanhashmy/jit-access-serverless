@@ -208,6 +208,18 @@ class SignedInApp {
         <dl>${details.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
         <p class="mono fine">id ${esc(r.requestId)}</p>
         ${
+          !approving && own
+            ? `<div class="session">
+                <button class="${r.status === 'GRANTED' ? 'primary' : 'ghost'}" data-session="${esc(r.requestId)}">Open AWS console</button>
+                <span class="fine">${
+                  r.status === 'GRANTED'
+                    ? `Real AWS session as <span class="mono">jit-target-${esc(r.role)}</span>, until ${esc(fmtTime(r.expiresAt))}.`
+                    : 'Only works while this request is GRANTED. Try it now to see the API refuse.'
+                }</span>
+              </div>`
+            : ''
+        }
+        ${
           approving
             ? `<div class="decide">
                 ${own ? '<p class="warn">This is your own request. The UI still lets you try; the API will refuse.</p>' : ''}
@@ -259,6 +271,9 @@ class SignedInApp {
 
   private bindPanel(panel: HTMLElement) {
     panel.querySelector<HTMLFormElement>('#request-form')?.addEventListener('submit', (e) => this.submitRequest(e));
+    panel.querySelectorAll<HTMLButtonElement>('[data-session]').forEach((b) =>
+      b.addEventListener('click', () => this.openConsole(b.dataset.session!)),
+    );
     panel.querySelectorAll<HTMLButtonElement>('[data-decide]').forEach((b) =>
       b.addEventListener('click', () => this.decide(b.dataset.id!, b.dataset.decide as 'APPROVED' | 'REJECTED')),
     );
@@ -284,6 +299,24 @@ class SignedInApp {
       this.toast(`${err instanceof ApiError ? err.status + ': ' : ''}${(err as Error).message}`, 'error');
     } finally {
       button.disabled = false;
+    }
+  }
+
+  private async openConsole(id: string) {
+    // Open the tab during the click, so the browser doesn't block it as a pop-up.
+    const tab = window.open('about:blank', '_blank');
+    try {
+      const session = await this.api.startSession(id);
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = session.consoleUrl;
+      } else {
+        window.location.href = session.consoleUrl;
+      }
+      this.toast(`AWS console opened as jit-target-${session.role} until ${fmtTime(session.sessionExpiresAt)}.`, 'ok');
+    } catch (err) {
+      tab?.close();
+      this.toast(`${err instanceof ApiError ? err.status + ': ' : ''}${(err as Error).message}`, 'error');
     }
   }
 

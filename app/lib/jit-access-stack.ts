@@ -85,6 +85,7 @@ export class JitAccessStack extends Stack {
       stateMachine: workflow.stateMachine,
       powertools,
       allowedOrigins: [web.url, LOCAL_DEV_ORIGIN],
+      consoleIssuer: web.url,
     });
 
     web.deploy({
@@ -99,9 +100,7 @@ export class JitAccessStack extends Stack {
     new Observability(this, 'Observability', {
       httpApi: api.httpApi,
       functions: {
-        'create-request': api.functions[0],
-        'list-requests': api.functions[1],
-        'decide-request': api.functions[2],
+        ...api.functions,
         'validate-request': workflow.functions[0],
         'register-approval': workflow.functions[1],
         'stream-publisher': wiring.publisher,

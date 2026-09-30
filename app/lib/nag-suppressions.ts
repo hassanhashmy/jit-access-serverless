@@ -38,6 +38,10 @@ const ACKNOWLEDGED: { id: string; reason: string }[] = [
     id: 'AwsSolutions-IAM5[Resource::arn:<AWS::Partition>:s3:::cdk-hnb659fds-assets-232936223811-eu-west-2/*]',
     reason: 'BucketDeployment reads the uploaded web build from the CDK assets bucket.',
   },
+  {
+    id: 'AwsSolutions-IAM5[Resource::arn:aws:iam::232936223811:role/jit-target-*]',
+    reason: 'Session broker may assume only the platform-owned jit-target-* roles (also capped by the boundary).',
+  },
   // ---- Lambda ----
   {
     id: 'AwsSolutions::AwsSolutions-L1',

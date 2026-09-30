@@ -11,3 +11,8 @@ output "cfn_exec_policy_arn" {
   description = "Pass to: cdk bootstrap --cloudformation-execution-policies <arn>"
   value       = aws_iam_policy.cfn_exec.arn
 }
+
+output "target_role_arns" {
+  description = "Roles a granted JIT request can open a console session into."
+  value       = { for k, r in aws_iam_role.target : k => r.arn }
+}

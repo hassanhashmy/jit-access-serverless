@@ -153,11 +153,26 @@ data "aws_iam_policy_document" "app_boundary" {
     resources = ["arn:${local.partition}:cloudfront::${local.account_id}:distribution/*"]
   }
 
+  # The session broker may step into the platform's JIT target roles, and nothing else.
+  statement {
+    sid       = "BrokerSessionsIntoTargetRolesOnly"
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole", "sts:SetSourceIdentity", "sts:TagSession"]
+    resources = ["arn:${local.partition}:iam::${local.account_id}:role/jit-target-*"]
+  }
+
+  statement {
+    sid           = "NeverAssumeAnyOtherRole"
+    effect        = "Deny"
+    actions       = ["sts:AssumeRole"]
+    not_resources = ["arn:${local.partition}:iam::${local.account_id}:role/jit-target-*"]
+  }
+
   # Explicit deny for readability and defence in depth. Nothing above allows these anyway.
   statement {
     sid       = "NeverIdentityOrOrganization"
     effect    = "Deny"
-    actions   = ["iam:*", "organizations:*", "account:*", "sts:AssumeRole"]
+    actions   = ["iam:*", "organizations:*", "account:*"]
     resources = ["*"]
   }
 }

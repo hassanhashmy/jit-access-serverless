@@ -1,9 +1,10 @@
-import { Duration, RemovalPolicy } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
@@ -17,6 +18,8 @@ export interface ApiProps {
   readonly stateMachine: sfn.IStateMachine;
   readonly powertools: lambda.ILayerVersion;
   readonly allowedOrigins: string[];
+  /** Shown in the AWS console as the "return to" link of brokered sessions. */
+  readonly consoleIssuer: string;
 }
 
 /**
@@ -27,7 +30,7 @@ export interface ApiProps {
 export class Api extends Construct {
   readonly httpApi: apigwv2.HttpApi;
   readonly url: string;
-  readonly functions: lambda.IFunction[];
+  readonly functions: Record<string, lambda.IFunction>;
 
   constructor(scope: Construct, id: string, props: ApiProps) {
     super(scope, id);
@@ -52,7 +55,28 @@ export class Api extends Construct {
     table.grant(decideFn, 'dynamodb:GetItem');
     props.stateMachine.grantTaskResponse(decideFn);
 
-    this.functions = [createFn, listFn, decideFn];
+    // The identity broker: turns an active grant into a real, time-limited AWS console session.
+    // It may assume ONLY the platform's jit-target-* roles (also enforced by the permission boundary,
+    // and by the target roles' trust policies, which accept only this function's role).
+    const targetRolePrefix = `arn:aws:iam::${Stack.of(this).account}:role/jit-target-`;
+    const sessionFn = fn('StartSession', 'handlers.start_session.handler', 'POST /requests/{id}/session', {
+      TARGET_ROLE_PREFIX: targetRolePrefix,
+      CONSOLE_ISSUER: props.consoleIssuer,
+    });
+    table.grant(sessionFn, 'dynamodb:GetItem');
+    sessionFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['sts:AssumeRole', 'sts:SetSourceIdentity', 'sts:TagSession'],
+        resources: [`${targetRolePrefix}*`],
+      }),
+    );
+
+    this.functions = {
+      'create-request': createFn,
+      'list-requests': listFn,
+      'decide-request': decideFn,
+      'start-session': sessionFn,
+    };
 
     this.httpApi = new apigwv2.HttpApi(this, 'HttpApi', {
       apiName: 'jit-access-api',
@@ -116,6 +140,7 @@ export class Api extends Construct {
     route('Create', '/requests', apigwv2.HttpMethod.POST, createFn, Identity.WRITE_SCOPE);
     route('List', '/requests', apigwv2.HttpMethod.GET, listFn, Identity.READ_SCOPE);
     route('Decide', '/requests/{id}/decision', apigwv2.HttpMethod.POST, decideFn, Identity.WRITE_SCOPE);
+    route('Session', '/requests/{id}/session', apigwv2.HttpMethod.POST, sessionFn, Identity.WRITE_SCOPE);
 
     this.url = this.httpApi.apiEndpoint;
   }

@@ -29,6 +29,17 @@ describe('IAM', () => {
     }
   });
 
+  test('only the session broker can assume roles, and only jit-target-* roles', () => {
+    const assumers = resources('AWS::IAM::Policy').flatMap(([id, policy]) =>
+      policy.Properties.PolicyDocument.Statement.filter((s: { Action: string | string[] }) =>
+        [s.Action].flat().includes('sts:AssumeRole'),
+      ).map((s: { Resource: string }) => ({ id, resource: s.Resource })),
+    );
+    expect(assumers).toHaveLength(1);
+    expect(assumers[0].id).toMatch(/^ApiStartSession/);
+    expect(assumers[0].resource).toBe('arn:aws:iam::232936223811:role/jit-target-*');
+  });
+
   test('no IAM users or access keys are created', () => {
     template.resourceCountIs('AWS::IAM::User', 0);
     template.resourceCountIs('AWS::IAM::AccessKey', 0);
@@ -38,7 +49,7 @@ describe('IAM', () => {
 describe('API authentication', () => {
   test('every route requires the Cognito JWT authorizer and a scope', () => {
     const routes = resources('AWS::ApiGatewayV2::Route');
-    expect(routes).toHaveLength(3);
+    expect(routes).toHaveLength(4);
     for (const [, route] of routes) {
       expect(route.Properties.AuthorizationType).toBe('JWT');
       expect(route.Properties.AuthorizationScopes.length).toBeGreaterThan(0);
