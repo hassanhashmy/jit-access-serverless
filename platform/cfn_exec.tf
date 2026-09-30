@@ -31,6 +31,13 @@ data "aws_iam_policy_document" "cfn_exec" {
   }
 
   statement {
+    sid       = "UseWebCertificate"
+    effect    = "Allow"
+    actions   = ["acm:DescribeCertificate", "acm:ListCertificates"]
+    resources = ["*"]
+  }
+
+  statement {
     sid     = "ManageAppTableOnly"
     effect  = "Allow"
     actions = ["dynamodb:*"]

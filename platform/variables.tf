@@ -37,3 +37,9 @@ variable "cdk_qualifier" {
   type        = string
   default     = "hnb659fds"
 }
+
+variable "web_domain" {
+  description = "Custom domain for the web app (DNS in Cloudflare)."
+  type        = string
+  default     = "jit.hassanhashmi.com"
+}

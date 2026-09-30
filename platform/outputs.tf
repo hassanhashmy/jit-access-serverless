@@ -26,3 +26,16 @@ output "platform_apply_role_arn" {
   description = "Set as the AWS_PLATFORM_APPLY_ROLE_ARN variable in GitHub."
   value       = aws_iam_role.platform_apply.arn
 }
+
+output "web_certificate_validation" {
+  description = "Add this CNAME in Cloudflare (DNS only) so ACM can issue the certificate."
+  value = [for o in aws_acm_certificate.web.domain_validation_options : {
+    name  = o.resource_record_name
+    type  = o.resource_record_type
+    value = o.resource_record_value
+  }]
+}
+
+output "web_certificate_status" {
+  value = aws_acm_certificate.web.status
+}

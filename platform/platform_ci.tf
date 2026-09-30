@@ -72,6 +72,11 @@ data "aws_iam_policy_document" "platform_plan" {
     resources = ["*"]
   }
   statement {
+    sid       = "ReadWebCertificate"
+    actions   = ["acm:DescribeCertificate", "acm:ListTagsForCertificate"]
+    resources = ["arn:${local.partition}:acm:us-east-1:${local.account_id}:certificate/*"]
+  }
+  statement {
     sid       = "ReadPlatformParametersOnly"
     actions   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:ListTagsForResource"]
     resources = ["arn:${local.partition}:ssm:${local.region}:${local.account_id}:parameter/jit/*"]
@@ -103,6 +108,16 @@ data "aws_iam_policy_document" "platform_apply" {
       "arn:${local.partition}:iam::${local.account_id}:role/jit-*",
       "arn:${local.partition}:iam::${local.account_id}:policy/jit-*",
     ]
+  }
+  statement {
+    sid       = "ManageWebCertificate"
+    actions   = ["acm:RequestCertificate", "acm:ListCertificates"]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "ManageWebCertificateById"
+    actions   = ["acm:DescribeCertificate", "acm:DeleteCertificate", "acm:AddTagsToCertificate", "acm:RemoveTagsFromCertificate", "acm:ListTagsForCertificate"]
+    resources = ["arn:${local.partition}:acm:us-east-1:${local.account_id}:certificate/*"]
   }
   statement {
     sid       = "ManagePlatformParameters"
