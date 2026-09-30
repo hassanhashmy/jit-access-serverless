@@ -1,0 +1,7 @@
+# Runtime dependencies come from the Lambda runtime (boto3) and the Powertools layer.
+# Keep aws-lambda-powertools in step with the layer version pinned in the CDK stack.
+aws-lambda-powertools==3.35.0
+boto3
+moto[dynamodb,stepfunctions]==5.2.3
+pytest==9.1.1
+ruff==0.16.9
