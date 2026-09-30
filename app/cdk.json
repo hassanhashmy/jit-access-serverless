@@ -1,0 +1,9 @@
+{
+  "app": "npx tsx bin/app.ts",
+  "context": {
+    "approvalTimeoutMinutes": 15,
+    "demoFailures": true,
+    "alarmEmail": "",
+    "@aws-cdk/customresources:installLatestAwsSdkDefault": false
+  }
+}
