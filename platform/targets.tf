@@ -48,6 +48,12 @@ data "aws_iam_policy_document" "logs_read" {
     actions   = ["logs:DescribeLogGroups", "logs:DescribeQueries", "logs:DescribeQueryDefinitions"]
     resources = ["*"]
   }
+  # The Logs console draws metric charts on every page; read-only, no resource-level permissions.
+  statement {
+    sid       = "ReadMetricsForConsoleCharts"
+    actions   = ["cloudwatch:GetMetricData", "cloudwatch:ListMetrics"]
+    resources = ["*"]
+  }
   statement {
     sid = "ReadAppLogs"
     actions = [
