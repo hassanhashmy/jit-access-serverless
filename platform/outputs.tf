@@ -16,3 +16,13 @@ output "target_role_arns" {
   description = "Roles a granted JIT request can open a console session into."
   value       = { for k, r in aws_iam_role.target : k => r.arn }
 }
+
+output "platform_plan_role_arn" {
+  description = "Set as the AWS_PLATFORM_PLAN_ROLE_ARN variable in GitHub."
+  value       = aws_iam_role.platform_plan.arn
+}
+
+output "platform_apply_role_arn" {
+  description = "Set as the AWS_PLATFORM_APPLY_ROLE_ARN variable in GitHub."
+  value       = aws_iam_role.platform_apply.arn
+}

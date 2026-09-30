@@ -25,6 +25,13 @@ data "aws_iam_policy_document" "github_trust" {
       variable = "token.actions.githubusercontent.com:sub"
       values   = ["${var.github_subject_prefix}:ref:refs/heads/${var.deploy_branch}"]
     }
+
+    # And only the app pipeline file, so other workflows on main can't borrow this role.
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:job_workflow_ref"
+      values   = ["${var.github_repository}/.github/workflows/pipeline.yml@refs/heads/${var.deploy_branch}"]
+    }
   }
 }
 

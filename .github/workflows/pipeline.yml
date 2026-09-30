@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   python:
-    name: Python Lambdas
+    name: Test · Python (ruff, pytest)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,7 +36,7 @@ jobs:
       - run: pytest -q
 
   cdk:
-    name: CDK app, TypeScript and web
+    name: Test · CDK + TypeScript (eslint, jest, cdk-nag synth)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -64,7 +64,7 @@ jobs:
         run: npx cdk synth --quiet
 
   terraform:
-    name: Terraform platform
+    name: Validate · Terraform (fmt, validate)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -79,7 +79,7 @@ jobs:
       - run: terraform validate
 
   security:
-    name: Security scans
+    name: Scan · Secrets + IaC (gitleaks, checkov)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -97,7 +97,7 @@ jobs:
           quiet: true
 
   deploy:
-    name: Deploy (OIDC)
+    name: Deploy · App via OIDC
     needs: [python, cdk, terraform, security]
     # Only from main (after merge, or a manual run on main), and only once the platform layer exists.
     # Pull requests never reach this job, and the role's trust policy would reject them anyway.

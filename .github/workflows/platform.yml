@@ -1,0 +1,99 @@
+name: platform
+
+# Terraform for platform/: OIDC trust, deploy roles, permission boundaries, JIT target roles.
+#   Pull request touching platform/**  -> plan with a read-only role, result in the job summary
+#   Manual run on main, typing "apply" -> plan + apply with the platform role
+# Each AWS role trusts only this workflow file (job_workflow_ref) and its trigger (sub).
+on:
+  pull_request:
+    branches: [main]
+    paths: ["platform/**"]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "apply" to apply platform/ to AWS
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-terraform
+  cancel-in-progress: false # never interrupt a Terraform apply
+
+defaults:
+  run:
+    shell: bash
+    working-directory: platform
+
+jobs:
+  plan:
+    name: Plan · Terraform platform (read-only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: "1.15.2"
+          terraform_wrapper: false
+      - name: Get read-only AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PLATFORM_PLAN_ROLE_ARN }}
+          role-session-name: platform-plan-${{ github.run_id }}
+          aws-region: eu-west-2
+      - run: terraform init -input=false
+      - name: terraform plan
+        # -lock=false: a read-only plan doesn't need the lock, so the plan role needs no write access.
+        run: |
+          terraform plan -input=false -no-color -lock=false | tee plan.txt
+          {
+            echo '### Terraform plan (platform)'
+            echo '```'
+            grep -E '^  # |^Plan:|No changes' plan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: Apply · Terraform platform (manual, main only)
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Require typed confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }} # passed via env, never interpolated into the script
+        run: |
+          if [ "$CONFIRM" != "apply" ]; then
+            echo "::error::Type apply in the confirm field to run terraform apply."
+            exit 1
+          fi
+      - uses: actions/checkout@v7.0.1
+      - uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: "1.15.2"
+          terraform_wrapper: false
+      - name: Get platform AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PLATFORM_APPLY_ROLE_ARN }}
+          role-session-name: platform-apply-${{ github.run_id }}
+          aws-region: eu-west-2
+      - run: terraform init -input=false
+      - name: terraform plan
+        run: |
+          terraform plan -input=false -no-color -out=platform.tfplan | tee plan.txt
+          {
+            echo '### Terraform plan (platform)'
+            echo '```'
+            grep -E '^  # |^Plan:|No changes' plan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: terraform apply (exactly the plan above)
+        run: terraform apply -input=false -no-color platform.tfplan
