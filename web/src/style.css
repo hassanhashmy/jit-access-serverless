@@ -97,16 +97,6 @@ dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 
 .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
 
-.explain { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; border-color: var(--accent); }
-.explain p { margin: 0; color: var(--muted); font-size: 14px; }
-.tokens { display: grid; gap: 20px; }
-.token { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); padding: 6px 8px; }
-td { border-bottom: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
-td.value { overflow-wrap: anywhere; max-width: 360px; }
-details { margin-top: 12px; }
-pre.raw { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); padding: 10px; border-radius: 6px; font-size: 12px; }
 
 .toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); padding: 12px 18px; border-radius: 8px; font-weight: 500; box-shadow: 0 6px 24px rgb(0 0 0 / 0.15); }
 .toast-ok { background: var(--accent); color: var(--surface); }

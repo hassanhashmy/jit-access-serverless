@@ -3,9 +3,9 @@ import type { User } from 'oidc-client-ts';
 import { Api, ApiError, type AccessRequest } from './api';
 import { Auth } from './auth';
 import { loadConfig } from './config';
-import { CLAIM_NOTES, decodeJwt } from './jwt';
+import { decodeJwt } from './jwt';
 
-type Tab = 'request' | 'mine' | 'approvals' | 'tokens';
+type Tab = 'request' | 'mine' | 'approvals';
 
 const ACCESS_ROLES = [
   { name: 'prod-logs-read', label: 'Production logs (read)', max: 240 },
@@ -118,7 +118,6 @@ class SignedInApp {
         ${this.tabButton('request', 'Request access')}
         ${this.tabButton('mine', 'My requests')}
         ${this.isApprover ? this.tabButton('approvals', 'Approvals') : ''}
-        ${this.tabButton('tokens', 'Token inspector')}
       </nav>
       <main id="panel" class="panel"></main>
       <div id="toast" class="toast" hidden></div>`;
@@ -154,7 +153,6 @@ class SignedInApp {
     if (this.tab === 'request') panel.innerHTML = this.requestForm();
     if (this.tab === 'mine') panel.innerHTML = this.requestList(this.mine, false);
     if (this.tab === 'approvals') panel.innerHTML = this.requestList(this.pending, true);
-    if (this.tab === 'tokens') panel.innerHTML = this.tokenInspector();
     this.bindPanel(panel);
   }
 
@@ -230,43 +228,6 @@ class SignedInApp {
             : ''
         }
       </article>`;
-  }
-
-  private tokenInspector() {
-    const tokens = [
-      { title: 'Access token', note: 'Sent to the API as the Bearer token. Carries scopes and groups.', raw: this.user.access_token },
-      { title: 'ID token', note: 'Proves who you are to this web app. Never sent to the API.', raw: this.user.id_token ?? '' },
-    ];
-    return `
-      <section class="explain card">
-        <div><h3>Authentication</h3><p>Who are you? Cognito signs the token; API Gateway verifies its signature, issuer, client, expiry and scope. A bad token gets <b>401</b> before any code runs.</p></div>
-        <div><h3>Authorization</h3><p>May you do <i>this</i>? The Lambda checks your <code>cognito:groups</code> and that your <code>sub</code> isn’t the requester’s. Otherwise <b>403</b>.</p></div>
-      </section>
-      <section class="tokens">
-        ${tokens
-          .map(({ title, note, raw }) => {
-            const { header, payload } = decodeJwt(raw);
-            const rows = { ...header, ...payload };
-            return `
-              <article class="card token">
-                <h2>${title}</h2>
-                <p class="fine">${note} Expires ${esc(fmtRelative(new Date(Number(payload.exp) * 1000).toISOString()))}.</p>
-                <table>
-                  <thead><tr><th>Claim</th><th>Value</th><th>Meaning</th></tr></thead>
-                  <tbody>
-                    ${Object.entries(rows)
-                      .map(([k, v]) => {
-                        const value = ['exp', 'iat', 'auth_time'].includes(k) ? `${v} (${fmtTime(new Date(Number(v) * 1000).toISOString())})` : typeof v === 'object' ? JSON.stringify(v) : v;
-                        return `<tr><td class="mono">${esc(k)}</td><td class="mono value">${esc(value)}</td><td>${esc(CLAIM_NOTES[k] ?? '')}</td></tr>`;
-                      })
-                      .join('')}
-                  </tbody>
-                </table>
-                <details><summary>Raw token</summary><pre class="mono raw">${esc(raw)}</pre></details>
-              </article>`;
-          })
-          .join('')}
-      </section>`;
   }
 
   private bindPanel(panel: HTMLElement) {
