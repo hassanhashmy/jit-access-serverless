@@ -37,7 +37,8 @@ The `verify` skill runs all of these in the same order as CI.
 - **Never deploy or apply from a laptop.** App changes deploy through `pipeline.yml` after merge to main.
   Platform changes are planned on a PR and applied by a manual run of `platform.yml`.
 - Order for changes that touch both layers: platform first (roles/boundary must exist), then the app.
-- Read-only AWS CLI calls always use `--profile devops-showcase --region eu-west-2`. Never use the default profile.
+- Read-only AWS CLI calls always use `--profile devops-showcase --region eu-west-2`, and `terraform plan` runs with
+  `AWS_PROFILE=devops-showcase` (the state lives in S3). Never use the default profile.
 
 ## Non-negotiables
 

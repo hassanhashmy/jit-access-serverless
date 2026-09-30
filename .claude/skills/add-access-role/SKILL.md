@@ -26,6 +26,6 @@ An access role exists in five places. Change all of them in one change, in this 
 Then:
 - Run the `verify` skill.
 - Run the `iam-review` skill on the `platform/` diff.
-- Show `cd platform && terraform plan` output for the new role (plan only).
+- Show `cd platform && AWS_PROFILE=devops-showcase terraform init -input=false && AWS_PROFILE=devops-showcase terraform plan -lock=false` output for the new role (plan only).
 - Tell the user the rollout order: merge and apply `platform.yml` first (the role must exist), then the app
   pipeline deploys the catalogue, broker and UI. Don't apply or deploy yourself.
