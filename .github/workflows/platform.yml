@@ -66,6 +66,7 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v7.0.1
       - name: Require typed confirmation
         env:
           CONFIRM: ${{ inputs.confirm }} # passed via env, never interpolated into the script
@@ -74,7 +75,6 @@ jobs:
             echo "::error::Type apply in the confirm field to run terraform apply."
             exit 1
           fi
-      - uses: actions/checkout@v7.0.1
       - uses: hashicorp/setup-terraform@v4.0.1
         with:
           terraform_version: "1.15.2"
