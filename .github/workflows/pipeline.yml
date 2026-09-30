@@ -99,8 +99,9 @@ jobs:
   deploy:
     name: Deploy (OIDC)
     needs: [python, cdk, terraform, security]
-    # Only after merge to main, and only once the platform layer has been applied (role ARN set).
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    # Only from main (after merge, or a manual run on main), and only once the platform layer exists.
+    # Pull requests never reach this job, and the role's trust policy would reject them anyway.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
