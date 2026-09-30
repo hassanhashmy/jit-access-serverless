@@ -22,6 +22,10 @@ class Caller:
     def is_approver(self) -> bool:
         return model.APPROVERS_GROUP in self.groups
 
+    @property
+    def is_requester(self) -> bool:
+        return model.REQUESTERS_GROUP in self.groups
+
 
 def parse_groups(raw) -> frozenset[str]:
     """HTTP API flattens JWT array claims into a string like "[approvers requesters]"."""
@@ -40,6 +44,11 @@ def caller_from_event(event: dict) -> Caller:
         username=claims.get("username") or claims.get("cognito:username") or claims["sub"],
         groups=parse_groups(claims.get("cognito:groups")),
     )
+
+
+def require_requester(caller: Caller) -> None:
+    if not caller.is_requester:
+        raise Forbidden("only members of the requesters group can request access")
 
 
 def require_approver(caller: Caller) -> None:

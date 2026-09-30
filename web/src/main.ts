@@ -59,7 +59,7 @@ function renderSignedOut(auth: Auth, error?: string) {
 }
 
 class SignedInApp {
-  private tab: Tab = 'request';
+  private tab: Tab;
   private mine: AccessRequest[] = [];
   private pending: AccessRequest[] = [];
   private idempotencyKey = crypto.randomUUID();
@@ -70,6 +70,11 @@ class SignedInApp {
     this.claims = decodeJwt(user.access_token).payload;
     const raw = this.claims['cognito:groups'];
     this.groups = Array.isArray(raw) ? raw.map(String) : [];
+    this.tab = this.isRequester ? 'request' : this.isApprover ? 'approvals' : 'mine';
+  }
+
+  private get isRequester() {
+    return this.groups.includes('requesters');
   }
 
   private get isApprover() {
@@ -115,7 +120,7 @@ class SignedInApp {
         </div>
       </header>
       <nav class="tabs" role="tablist">
-        ${this.tabButton('request', 'Request access')}
+        ${this.isRequester ? this.tabButton('request', 'Request access') : ''}
         ${this.tabButton('mine', 'My requests')}
         ${this.isApprover ? this.tabButton('approvals', 'Approvals') : ''}
       </nav>

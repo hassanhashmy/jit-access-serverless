@@ -33,6 +33,7 @@ def request_id_for(caller_sub: str, idempotency_key: str | None) -> str:
 @api_handler
 def handler(event, context):
     caller = authz.caller_from_event(event)
+    authz.require_requester(caller)
     role, duration, reason = policy.parse_request_body(json_body(event))
     idempotency_key = (event.get("headers") or {}).get("idempotency-key")
     now = now_iso()

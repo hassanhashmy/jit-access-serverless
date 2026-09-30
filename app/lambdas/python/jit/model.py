@@ -12,6 +12,7 @@ APPROVED = "APPROVED"  # a decision, not a stored status
 DECISIONS = frozenset({APPROVED, REJECTED})
 
 APPROVERS_GROUP = "approvers"
+REQUESTERS_GROUP = "requesters"
 
 # Never returned to clients: the task token lets its holder resume the workflow.
 PRIVATE_FIELDS = frozenset({"taskToken"})

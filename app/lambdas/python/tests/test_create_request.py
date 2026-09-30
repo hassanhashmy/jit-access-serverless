@@ -1,6 +1,6 @@
 import json
 
-from conftest import ALICE, http_event
+from conftest import ALICE, BOB, CAROL, http_event
 from handlers import create_request
 
 BODY = {"role": "prod-logs-read", "durationMinutes": 60, "reason": "INC-42 investigating 5xx"}
@@ -43,3 +43,16 @@ def test_invalid_body_is_400(ctx):
 def test_task_token_is_never_returned(ctx):
     _, body = call(ctx)
     assert "taskToken" not in body
+
+
+def test_approver_who_is_not_a_requester_is_forbidden(ctx, table):
+    status, body = call(ctx, user=BOB)
+    assert status == 403
+    assert "requesters" in body["message"]
+    assert table.scan()["Count"] == 0
+
+
+def test_member_of_both_groups_can_request(ctx, table):
+    status, body = call(ctx, user=CAROL)
+    assert status == 201
+    assert body["requesterUsername"] == "carol"

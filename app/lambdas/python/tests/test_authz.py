@@ -43,3 +43,12 @@ def test_approver_cannot_decide_own_request():
 def test_cannot_decide_when_not_waiting():
     with pytest.raises(Conflict):
         authz.check_can_decide(caller(), {**ITEM, "status": "GRANTED"})
+
+
+def test_only_requesters_can_request():
+    authz.require_requester(caller(groups=("requesters",)))
+    authz.require_requester(caller(groups=("approvers", "requesters")))
+    with pytest.raises(Forbidden, match="requesters"):
+        authz.require_requester(caller(groups=("approvers",)))
+    with pytest.raises(Forbidden):
+        authz.require_requester(caller(groups=()))
