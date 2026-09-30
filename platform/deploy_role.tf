@@ -18,11 +18,12 @@ data "aws_iam_policy_document" "github_trust" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # Exact match on repo AND branch. StringLike with "repo:owner/*" would let any repo or branch in.
+    # Exact match on repo (by immutable ID) AND branch. StringLike with "repo:owner/*" would let any
+    # repo or branch in.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:ref:refs/heads/${var.deploy_branch}"]
+      values   = ["${var.github_subject_prefix}:ref:refs/heads/${var.deploy_branch}"]
     }
   }
 }
