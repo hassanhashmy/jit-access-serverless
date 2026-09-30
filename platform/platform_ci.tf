@@ -114,10 +114,22 @@ data "aws_iam_policy_document" "platform_apply" {
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
     resources = [local.state_bucket, "${local.state_bucket}/platform/*"]
   }
+  # Reading the shared OIDC provider is fine (Terraform looks it up); changing it never is.
   statement {
-    sid       = "NeverLongLivedCredentialsOrOtherProjects"
-    effect    = "Deny"
-    actions   = ["iam:CreateUser", "iam:CreateAccessKey", "iam:CreateLoginProfile", "iam:*OpenIDConnectProvider*"]
+    sid    = "NeverLongLivedCredentialsOrTheSharedOidcProvider"
+    effect = "Deny"
+    actions = [
+      "iam:CreateUser",
+      "iam:CreateAccessKey",
+      "iam:CreateLoginProfile",
+      "iam:CreateOpenIDConnectProvider",
+      "iam:DeleteOpenIDConnectProvider",
+      "iam:UpdateOpenIDConnectProviderThumbprint",
+      "iam:AddClientIDToOpenIDConnectProvider",
+      "iam:RemoveClientIDFromOpenIDConnectProvider",
+      "iam:TagOpenIDConnectProvider",
+      "iam:UntagOpenIDConnectProvider",
+    ]
     resources = ["*"]
   }
 }

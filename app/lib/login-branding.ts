@@ -12,7 +12,8 @@ const LINE = 'd3d9e0ff';
 const PAGE = 'eef2f5ff';
 const WHITE = 'ffffffff';
 
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="56" viewBox="0 0 240 56">
+// Cognito requires logos between 1:1 and 4:1 (width:height); 200x56 is about 3.6:1.
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="56" viewBox="0 0 200 56">
 <rect x="0" y="8" width="64" height="40" rx="8" fill="#0d7a6b"/>
 <text x="32" y="35" text-anchor="middle" font-family="Menlo,Consolas,monospace" font-size="19" font-weight="700" fill="#ffffff" letter-spacing="1">JIT</text>
 <text x="78" y="37" font-family="Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#16202a">Access</text>
