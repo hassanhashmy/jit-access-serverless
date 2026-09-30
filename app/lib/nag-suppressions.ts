@@ -58,7 +58,11 @@ const ACKNOWLEDGED: { id: string; reason: string }[] = [
   { id: 'AwsSolutions::AwsSolutions-CFR1', reason: 'Internal tool without geographic restrictions.' },
   { id: 'AwsSolutions::AwsSolutions-CFR2', reason: 'Production follow-up: attach AWS WAF with managed rules and rate limiting.' },
   { id: 'AwsSolutions::AwsSolutions-CFR3', reason: 'Production follow-up: CloudFront standard logs to CloudWatch.' },
-  { id: 'AwsSolutions::AwsSolutions-CFR4', reason: 'Default CloudFront domain; production uses a custom domain with ACM and TLSv1.2_2021.' },
+  // ---- CloudFormation linter ----
+  {
+    id: 'CloudFormation-Validate::E3013',
+    reason: 'The CloudFront alias is an SSM parameter (/jit/platform/web-domain) resolved at deploy time; the linter sees its name.',
+  },
   // ---- Cognito ----
   { id: 'AwsSolutions::AwsSolutions-COG2', reason: 'Demo users. Production: enforce MFA or federate to the corporate IdP that enforces it.' },
   { id: 'AwsSolutions::AwsSolutions-COG8', reason: 'Plus feature plan (threat protection) not needed for a demo; production follow-up.' },

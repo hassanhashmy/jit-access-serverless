@@ -1,10 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 
 const WEB_DIST = path.join(__dirname, '..', '..', 'web', 'dist');
@@ -13,11 +15,22 @@ const WEB_DIST = path.join(__dirname, '..', '..', 'web', 'dist');
 export class Web extends Construct {
   readonly bucket: s3.Bucket;
   readonly distribution: cloudfront.Distribution;
+  /** https://jit.hassanhashmi.com (custom domain from the platform layer) */
   readonly url: string;
+  /** https://xxxx.cloudfront.net, still accepted so old links keep working */
+  readonly cloudFrontUrl: string;
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
     const { account, region } = Stack.of(this);
+
+    // Contract with the platform layer: Terraform owns the domain and its us-east-1 certificate.
+    const domainName = ssm.StringParameter.valueForStringParameter(this, '/jit/platform/web-domain');
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      'Certificate',
+      ssm.StringParameter.valueForStringParameter(this, '/jit/platform/web-certificate-arn'),
+    );
 
     this.bucket = new s3.Bucket(this, 'SiteBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -52,6 +65,9 @@ export class Web extends Construct {
 
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       comment: 'JIT Access web app',
+      domainNames: [domainName],
+      certificate,
+      minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
       defaultRootObject: 'index.html',
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
@@ -63,7 +79,8 @@ export class Web extends Construct {
       errorResponses: [{ httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' }],
     });
 
-    this.url = `https://${this.distribution.distributionDomainName}`;
+    this.url = `https://${domainName}`;
+    this.cloudFrontUrl = `https://${this.distribution.distributionDomainName}`;
   }
 
   /** Upload the built app plus a runtime config.json, then invalidate the CDN cache. */

@@ -62,7 +62,8 @@ export class JitAccessStack extends Stack {
     const powertools = powertoolsLayer(this);
 
     const web = new Web(this, 'Web');
-    const identity = new Identity(this, 'Identity', { appOrigins: [web.url, LOCAL_DEV_ORIGIN] });
+    const appOrigins = [web.url, web.cloudFrontUrl, LOCAL_DEV_ORIGIN];
+    const identity = new Identity(this, 'Identity', { appOrigins });
 
     const workflow = new Workflow(this, 'Workflow', {
       table,
@@ -84,7 +85,7 @@ export class JitAccessStack extends Stack {
       table,
       stateMachine: workflow.stateMachine,
       powertools,
-      allowedOrigins: [web.url, LOCAL_DEV_ORIGIN],
+      allowedOrigins: appOrigins,
       consoleIssuer: web.url,
     });
 
@@ -113,6 +114,7 @@ export class JitAccessStack extends Stack {
     });
 
     new CfnOutput(this, 'WebUrl', { value: web.url });
+    new CfnOutput(this, 'CloudFrontDomain', { value: web.distribution.distributionDomainName });
     new CfnOutput(this, 'ApiUrl', { value: api.url });
     new CfnOutput(this, 'UserPoolId', { value: identity.userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', { value: identity.client.userPoolClientId });
