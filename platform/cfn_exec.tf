@@ -51,10 +51,24 @@ data "aws_iam_policy_document" "cfn_exec" {
   }
 
   statement {
-    sid       = "ReadPlatformParameters"
-    effect    = "Allow"
-    actions   = ["ssm:GetParameter", "ssm:GetParameters"]
-    resources = ["arn:${local.partition}:ssm:${local.region}:${local.account_id}:parameter/jit/*"]
+    sid     = "ReadPlatformAndBootstrapParameters"
+    effect  = "Allow"
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = [
+      "arn:${local.partition}:ssm:${local.region}:${local.account_id}:parameter/jit/*",
+      "arn:${local.partition}:ssm:${local.region}:${local.account_id}:parameter/cdk-bootstrap/${var.cdk_qualifier}/version",
+    ]
+  }
+
+  # Lambda fetches function and layer code from S3 with the CALLER's permissions.
+  statement {
+    sid     = "ReadCdkAssets"
+    effect  = "Allow"
+    actions = ["s3:GetObject", "s3:GetObjectVersion", "s3:GetBucketLocation", "s3:ListBucket"]
+    resources = [
+      "arn:${local.partition}:s3:::cdk-${var.cdk_qualifier}-assets-${local.account_id}-${local.region}",
+      "arn:${local.partition}:s3:::cdk-${var.cdk_qualifier}-assets-${local.account_id}-${local.region}/*",
+    ]
   }
 
   statement {
@@ -67,9 +81,6 @@ data "aws_iam_policy_document" "cfn_exec" {
       "iam:AttachRolePolicy",
       "iam:DetachRolePolicy",
       "iam:PutRolePermissionsBoundary",
-      "iam:UpdateAssumeRolePolicy",
-      "iam:TagRole",
-      "iam:UntagRole",
     ]
     resources = ["arn:${local.partition}:iam::${local.account_id}:role/${local.app_prefix}-*"]
 
@@ -81,13 +92,21 @@ data "aws_iam_policy_document" "cfn_exec" {
   }
 
   statement {
-    sid    = "ReadAndDeleteAppRoles"
+    # These actions don't support the iam:PermissionsBoundary condition key. They can't grant
+    # permissions, and they only touch roles that could only have been created with the boundary.
+    sid    = "ManageAppRolesMetadata"
     effect = "Allow"
     actions = [
       "iam:GetRole",
       "iam:GetRolePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
+      "iam:ListRoleTags",
+      "iam:TagRole",
+      "iam:UntagRole",
+      "iam:UpdateRole",
+      "iam:UpdateRoleDescription",
+      "iam:UpdateAssumeRolePolicy",
       "iam:DeleteRole",
     ]
     resources = ["arn:${local.partition}:iam::${local.account_id}:role/${local.app_prefix}-*"]
