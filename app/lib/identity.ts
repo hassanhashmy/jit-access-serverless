@@ -1,6 +1,7 @@
 import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
+import { LoginBranding } from './login-branding';
 
 export interface IdentityProps {
   /** Origins the browser app is served from; each gets origin + "/" as callback and logout URL. */
@@ -38,6 +39,7 @@ export class Identity extends Construct {
         tempPasswordValidity: Duration.days(3),
       },
       accountRecovery: cognito.AccountRecovery.NONE,
+      featurePlan: cognito.FeaturePlan.ESSENTIALS, // needed for the managed login page and its branding
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
@@ -61,7 +63,7 @@ export class Identity extends Construct {
 
     const domain = this.userPool.addDomain('Domain', {
       cognitoDomain: { domainPrefix: `jit-access-${account}` },
-      managedLoginVersion: cognito.ManagedLoginVersion.CLASSIC_HOSTED_UI,
+      managedLoginVersion: cognito.ManagedLoginVersion.NEWER_MANAGED_LOGIN,
     });
 
     const urls = props.appOrigins.map((o) => `${o}/`);
@@ -87,6 +89,8 @@ export class Identity extends Construct {
       idTokenValidity: Duration.minutes(60),
       refreshTokenValidity: Duration.hours(8),
     });
+
+    new LoginBranding(this, 'LoginBranding', { userPool: this.userPool, client: this.client });
 
     this.domainUrl = domain.baseUrl();
     this.issuerUrl = `https://cognito-idp.${region}.amazonaws.com/${this.userPool.userPoolId}`;
