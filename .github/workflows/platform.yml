@@ -45,16 +45,18 @@ jobs:
       - run: terraform fmt -check -recursive
       - run: terraform init -backend=false -input=false
       - run: terraform validate
+      # Secret scan before checkov: checkov runs in a root container and leaves a root-owned
+      # results.sarif in the workspace, which gitleaks then can't overwrite.
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Terraform misconfiguration scan
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: platform
           framework: terraform
           quiet: true
-      - name: Secret scan
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   plan:
     name: Plan · Terraform platform (read-only)
