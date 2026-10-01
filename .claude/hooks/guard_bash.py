@@ -22,10 +22,12 @@ RULES = [
      "Terraform state can contain sensitive values; don't read or copy it."),
 ]
 # Pushing to main deploys to AWS, so changes go through a pull request instead.
-if re.search(r"\bgit\s+push\b", cmd):
+# Only the push itself is inspected, so "gh pr create --base main" in the same command is fine.
+for push in re.findall(r"\bgit\s+push\b[^;&|]*", cmd):
     import subprocess
     branch = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True).stdout.strip()
-    if re.search(r"\bmain\b", cmd) or (branch == "main" and not re.search(r"\bgit\s+push\s+\S+\s+\S+", cmd)):
+    explicit_target = re.search(r"\bgit\s+push\s+(-\S+\s+)*\S+\s+\S+", push)
+    if re.search(r"\bmain\b", push) or (branch == "main" and not explicit_target):
         print("Blocked by guard_bash: pushing to main deploys to AWS. Push a feature branch and open a PR "
               "(`gh pr create`), or ask the user to push.", file=sys.stderr)
         sys.exit(2)
