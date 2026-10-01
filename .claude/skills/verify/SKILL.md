@@ -1,7 +1,7 @@
 ---
 name: verify
 description: Run every check CI runs (ruff, pytest, eslint, tsc, jest, web build, cdk synth with cdk-nag, terraform fmt/validate, checkov) and report pass/fail. Use before committing or opening a PR, and after any code or IaC change.
-allowed-tools: Bash(cd *), Bash(.venv/bin/ruff *), Bash(.venv/bin/pytest *), Bash(npm run *), Bash(npm test *), Bash(npx cdk synth *), Bash(terraform fmt *), Bash(terraform init -backend=false *), Bash(terraform validate *), Bash(checkov *)
+allowed-tools: Bash(cd *), Bash(export TF_DATA_DIR*), Bash(.venv/bin/ruff *), Bash(.venv/bin/pytest *), Bash(npm run *), Bash(npm test *), Bash(npx cdk synth *), Bash(terraform fmt *), Bash(terraform init -backend=false *), Bash(terraform validate *), Bash(checkov *)
 ---
 
 # Verify
@@ -16,8 +16,11 @@ Run these from the repo root, in order, and keep going after a failure so the re
 | 4 | Infra tests | `cd app && npm test` |
 | 5 | Web build | `cd web && npm run build` |
 | 6 | Synth + cdk-nag | `cd app && npx cdk synth --quiet` (fails on unacknowledged findings) |
-| 7 | Terraform | `cd platform && terraform fmt -check -recursive && terraform init -backend=false -input=false && terraform validate` |
+| 7 | Terraform | `cd platform && terraform fmt -check -recursive && export TF_DATA_DIR=$(mktemp -d) && terraform init -backend=false -input=false && terraform validate` |
 | 8 | Terraform scan | `checkov -d platform --framework terraform --compact --quiet` (skip with a note if checkov isn't installed; CI runs it) |
+
+`TF_DATA_DIR` points Terraform at an empty temporary folder, so `init` never reuses `platform/.terraform/`
+(which is configured for the S3 backend) and the check makes no AWS calls.
 
 If `.venv` is missing: `cd app/lambdas/python && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt`.
 
