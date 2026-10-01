@@ -31,6 +31,9 @@ jobs:
   validate:
     name: Validate · Terraform (fmt, validate, checkov, gitleaks)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks lists the PR's commits through the GitHub API
     steps:
       - uses: actions/checkout@v7.0.1
         with:
